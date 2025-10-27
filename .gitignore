@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+data/processed/
+pipeline.log
+models/
