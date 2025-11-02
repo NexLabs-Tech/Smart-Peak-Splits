@@ -138,15 +138,15 @@ def predict_race(gpx_file_path, model_path=None, scaler_path=None):
         result_df.loc[i, 'predicted_hr'] = predictions[0, 1]
     
     output_df = result_df[['split_km', 'predicted_pace', 'elevation_gain', 'elevation_loss', 'predicted_hr']].copy()
-    output_df.columns = ['split_km', 'pace', 'elevation_gain', 'elevation_loss', 'avg_hr']
+    output_df.columns = ['split_km', 'AVG_pace', 'elevation_gain', 'elevation_loss', 'avg_hr']
     
     print(f"\nRESUMEN:")
     print(f"  Total splits: {len(output_df)}")
-    print(f"  Pace promedio: {output_df['pace'].mean():.2f} min/km")
+    print(f"  Pace promedio: {output_df['AVG_pace'].mean():.2f} min/km")
     print(f"  HR promedio: {output_df['avg_hr'].mean():.0f} bpm")
     print(f"  Elevación total: {output_df['elevation_gain'].sum():.0f}m")
-    print(f"  Tiempo estimado: {output_df['pace'].sum():.2f} minutos")
-    
+    print(f"  Tiempo estimado: {output_df['AVG_pace'].sum():.2f} minutos")
+
     return output_df
 
 
