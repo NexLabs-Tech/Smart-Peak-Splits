@@ -4,3 +4,8 @@ pandas
 scikit-learn
 gpxpy
 matplotlib
+seaborn
+streamlit
+plotly
+folium
+streamlit-folium

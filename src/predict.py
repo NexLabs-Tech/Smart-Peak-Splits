@@ -5,6 +5,52 @@ import pickle
 import os
 from tensorflow.keras.models import load_model
 
+
+def extract_gpx_info(gpx_file_path):
+    """Extrae información detallada del archivo GPX para visualización"""
+    with open(gpx_file_path, 'r') as gpx_file:
+        gpx = gpxpy.parse(gpx_file)
+    
+    points_data = []
+    total_distance = 0
+    
+    for track in gpx.tracks:
+        for segment in track.segments:
+            points = segment.points
+            
+            for i in range(len(points)):
+                if i > 0:
+                    prev_point = points[i-1]
+                    curr_point = points[i]
+                    distance = prev_point.distance_2d(curr_point)
+                    total_distance += distance
+                else:
+                    distance = 0
+                
+                points_data.append({
+                    'latitude': points[i].latitude,
+                    'longitude': points[i].longitude,
+                    'elevation': points[i].elevation if points[i].elevation else 0,
+                    'cumulative_distance': total_distance / 1000,  # en km
+                })
+    
+    df_points = pd.DataFrame(points_data)
+    
+    return {
+        'points': df_points,
+        'total_distance': total_distance / 1000,  # en km
+        'min_elevation': df_points['elevation'].min(),
+        'max_elevation': df_points['elevation'].max(),
+        'avg_elevation': df_points['elevation'].mean(),
+        'bounds': {
+            'min_lat': df_points['latitude'].min(),
+            'max_lat': df_points['latitude'].max(),
+            'min_lon': df_points['longitude'].min(),
+            'max_lon': df_points['longitude'].max(),
+        }
+    }
+
+
 def parse_gpx(gpx_file_path):
     with open(gpx_file_path, 'r') as gpx_file:
         gpx = gpxpy.parse(gpx_file)

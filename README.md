@@ -41,3 +41,5 @@ smart-peak-splits/
 ├── requirements.txt
 └── README.md
 ```
+
+python src/predict.py test/acatenango-hike-el-fuego-guatemala.gpx
