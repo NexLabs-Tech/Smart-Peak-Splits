@@ -4,6 +4,7 @@ import gpxpy
 import pickle
 import os
 from tensorflow.keras.models import load_model
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 
 def extract_gpx_info(gpx_file_path):
@@ -110,21 +111,96 @@ def parse_gpx(gpx_file_path):
     return df
 
 
+def calculate_model_metrics(y_true, y_pred):
+    """
+    Calcula métricas de evaluación del modelo (MAE, RMSE, R²) separadas para pace y HR.
+
+    Args:
+        y_true: array con valores reales, shape (n_samples, 2) - [pace, hr]
+        y_pred: array con valores predichos, shape (n_samples, 2) - [pace, hr]
+
+    Returns:
+        dict con métricas separadas para pace y HR
+    """
+    # Separar pace y HR
+    pace_true = y_true[:, 0]
+    pace_pred = y_pred[:, 0]
+    hr_true = y_true[:, 1]
+    hr_pred = y_pred[:, 1]
+
+    # Calcular métricas para PACE
+    pace_mae = mean_absolute_error(pace_true, pace_pred)
+    pace_rmse = np.sqrt(mean_squared_error(pace_true, pace_pred))
+    pace_r2 = r2_score(pace_true, pace_pred)
+
+    # Calcular métricas para HR
+    hr_mae = mean_absolute_error(hr_true, hr_pred)
+    hr_rmse = np.sqrt(mean_squared_error(hr_true, hr_pred))
+    hr_r2 = r2_score(hr_true, hr_pred)
+
+    metrics = {
+        'pace': {
+            'mae': pace_mae,
+            'rmse': pace_rmse,
+            'r2': pace_r2
+        },
+        'hr': {
+            'mae': hr_mae,
+            'rmse': hr_rmse,
+            'r2': hr_r2
+        }
+    }
+
+    return metrics
+
+
+def get_model_validation_metrics(model_path=None):
+    """
+    Carga las métricas de validación del modelo si están disponibles.
+
+    Returns:
+        dict con métricas o None si no están disponibles
+    """
+    if model_path is None:
+        possible_paths = [
+            'models/metrics.pkl',
+            'notebooks-research/models/metrics.pkl',
+        ]
+
+        for path in possible_paths:
+            if os.path.exists(path):
+                try:
+                    with open(path, 'rb') as f:
+                        return pickle.load(f)
+                except:
+                    continue
+    else:
+        metrics_path = model_path.replace('.keras', '_metrics.pkl')
+        if os.path.exists(metrics_path):
+            try:
+                with open(metrics_path, 'rb') as f:
+                    return pickle.load(f)
+            except:
+                pass
+
+    return None
+
+
 def predict_race(gpx_file_path, model_path=None, scaler_path=None):
-    
+
     if model_path is None:
         possible_paths = [
             ('models/smart_peak_model.keras', 'models/scalers.pkl'),
             ('notebooks-research/models/best_model.keras', 'notebooks-research/models/scalers.pkl'),
             ('notebooks-research/models/smart_peak_model.keras', 'notebooks-research/models/scalers.pkl'),
         ]
-        
+
         for mp, sp in possible_paths:
             if os.path.exists(mp) and os.path.exists(sp):
                 model_path = mp
                 scaler_path = sp
                 break
-        
+
         if model_path is None:
             raise FileNotFoundError(
                 f"\n❌ Error: No se encontró el modelo entrenado\n"

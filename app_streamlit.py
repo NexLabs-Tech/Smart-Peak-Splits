@@ -4,7 +4,7 @@ import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
-from src.predict import predict_race, extract_gpx_info
+from src.predict import predict_race, extract_gpx_info, get_model_validation_metrics
 from src.explainable_ai import ExplainableAI, plot_feature_importance, plot_correlation_heatmap, plot_prediction_factors
 import os
 import tempfile
@@ -128,6 +128,99 @@ if uploaded_file is not None:
                     help="Ganancia de elevación acumulada"
                 )
             
+            # Métricas del Modelo (MAE, RMSE, R²)
+            st.markdown("---")
+            st.subheader("🎯 Métricas del Modelo")
+
+            # Intentar cargar métricas de validación
+            validation_metrics = get_model_validation_metrics()
+
+            if validation_metrics:
+                st.markdown("""
+                Estas métricas muestran qué tan bien predice el modelo comparado con datos reales de entrenamiento:
+                - **MAE** (Error Absoluto Medio): Error promedio en las predicciones
+                - **RMSE** (Raíz del Error Cuadrático Medio): Penaliza errores grandes
+                - **R²** (Coeficiente de Determinación): Qué tan bien explica el modelo (1.0 = perfecto, 0.0 = malo)
+                """)
+
+                col_metrics1, col_metrics2 = st.columns(2)
+
+                with col_metrics1:
+                    st.markdown("#### 🏃 Métricas de PACE (Ritmo)")
+                    pace_metrics = validation_metrics.get('pace', {})
+
+                    met_col1, met_col2, met_col3 = st.columns(3)
+                    with met_col1:
+                        st.metric(
+                            "MAE",
+                            f"{pace_metrics.get('mae', 0):.2f} min/km",
+                            help="Error promedio en predicciones de ritmo"
+                        )
+                    with met_col2:
+                        st.metric(
+                            "RMSE",
+                            f"{pace_metrics.get('rmse', 0):.2f} min/km",
+                            help="Error cuadrático medio (penaliza errores grandes)"
+                        )
+                    with met_col3:
+                        r2_value = pace_metrics.get('r2', 0)
+                        r2_color = "normal" if r2_value > 0.5 else "inverse"
+                        st.metric(
+                            "R²",
+                            f"{r2_value:.3f}",
+                            help="Calidad del modelo (1.0 = perfecto, 0.0 = malo)",
+                            delta=f"{'Bueno' if r2_value > 0.5 else 'Mejorable'}"
+                        )
+
+                with col_metrics2:
+                    st.markdown("#### ❤️ Métricas de HR (Frecuencia Cardíaca)")
+                    hr_metrics = validation_metrics.get('hr', {})
+
+                    met_col1, met_col2, met_col3 = st.columns(3)
+                    with met_col1:
+                        st.metric(
+                            "MAE",
+                            f"{hr_metrics.get('mae', 0):.1f} bpm",
+                            help="Error promedio en predicciones de HR"
+                        )
+                    with met_col2:
+                        st.metric(
+                            "RMSE",
+                            f"{hr_metrics.get('rmse', 0):.1f} bpm",
+                            help="Error cuadrático medio (penaliza errores grandes)"
+                        )
+                    with met_col3:
+                        r2_value = hr_metrics.get('r2', 0)
+                        st.metric(
+                            "R²",
+                            f"{r2_value:.3f}",
+                            help="Calidad del modelo (1.0 = perfecto, 0.0 = malo)",
+                            delta=f"{'Bueno' if r2_value > 0.5 else 'Mejorable'}"
+                        )
+
+                # Interpretación de las métricas
+                st.markdown("---")
+                st.markdown("**💡 Interpretación:**")
+
+                pace_r2 = pace_metrics.get('r2', 0)
+                hr_r2 = hr_metrics.get('r2', 0)
+
+                if pace_r2 > 0.7:
+                    st.success(f"✅ El modelo predice el **ritmo** muy bien (R² = {pace_r2:.3f})")
+                elif pace_r2 > 0.5:
+                    st.info(f"ℹ️ El modelo predice el **ritmo** de forma aceptable (R² = {pace_r2:.3f})")
+                else:
+                    st.warning(f"⚠️ El modelo tiene dificultad prediciendo el **ritmo** (R² = {pace_r2:.3f})")
+
+                if hr_r2 > 0.7:
+                    st.success(f"✅ El modelo predice la **HR** muy bien (R² = {hr_r2:.3f})")
+                elif hr_r2 > 0.5:
+                    st.info(f"ℹ️ El modelo predice la **HR** de forma aceptable (R² = {hr_r2:.3f})")
+                else:
+                    st.warning(f"⚠️ El modelo tiene dificultad prediciendo la **HR** (R² = {hr_r2:.3f}). Esto puede indicar que la HR no varía mucho o que faltan características importantes.")
+            else:
+                st.info("ℹ️ Métricas de validación no disponibles. Ejecuta el notebook de entrenamiento para generarlas.")
+
             # Métricas Avanzadas
             st.markdown("---")
             st.subheader("📈 Métricas Avanzadas")
